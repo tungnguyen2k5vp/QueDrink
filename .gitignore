@@ -1,0 +1,23 @@
+# Environment and local state
+.env
+.env.local
+**/.env
+!.env.example
+
+# Build output
+frontend/.next/
+frontend/out/
+backend/target/
+
+# Tooling
+node_modules/
+*.log
+.idea/
+.vscode/
+
+# ASP.NET and isolated local demo data
+.local/
+backend/bin/
+backend/obj/
+backend/.keys/
+frontend/tsconfig.tsbuildinfo

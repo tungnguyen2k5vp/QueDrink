@@ -1,0 +1,59 @@
+﻿name: QueDrink checks
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: quedrink, POSTGRES_DB: quedrink, POSTGRES_PASSWORD: quedrink_ci_only }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U quedrink"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://127.0.0.1:5086
+      ConnectionStrings__Database: Host=localhost;Port=5432;Database=quedrink;Username=quedrink;Password=quedrink_ci_only
+      ADMIN_EMAIL: admin@quedrink.local
+      ADMIN_PASSWORD: QueDrink!2026Demo
+      JWT_SECRET: quedrink-ci-jwt-key-isolated-test-fixture-at-least-48-characters
+      PAYMENT_CALLBACK_SECRET: quedrink-ci-payment-key-isolated-test-fixture-at-least-48-characters
+      QUE_ADMIN_PASSWORD: QueDrink!2026Demo
+      QUE_PAYMENT_SECRET: quedrink-ci-payment-key-isolated-test-fixture-at-least-48-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - run: dotnet build
+      - run: dotnet run --no-build -- --self-test
+      - run: |
+          dotnet run --no-build > /tmp/quedrink-api.log 2>&1 &
+          for i in {1..40}; do curl -fsS http://127.0.0.1:5086/actuator/health && break; sleep 1; done
+          python3 check_api.py
+      - name: VNPAY local contract checks
+        env:
+          ASPNETCORE_URLS: http://127.0.0.1:5087
+          PAYMENT_PROVIDER: VNPAY
+          VNPAY_SANDBOX: 'true'
+          VNPAY_TMN_CODE: FIXTURE1
+          VNPAY_HASH_SECRET: quedrink-ci-vnpay-fixture-key-not-a-merchant-secret
+          GMAIL_ENABLED: 'false'
+          QUE_API: http://127.0.0.1:5087/api/v1
+          QUE_VNPAY_TEST_SECRET: quedrink-ci-vnpay-fixture-key-not-a-merchant-secret
+        run: |
+          dotnet run --no-build > /tmp/quedrink-vnpay.log 2>&1 &
+          for i in {1..40}; do curl -fsS http://127.0.0.1:5087/actuator/health && break; sleep 1; done
+          python3 check_vnpay.py
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

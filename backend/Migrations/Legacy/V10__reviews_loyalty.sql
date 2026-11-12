@@ -1,0 +1,4 @@
+CREATE TABLE reviews (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, product_id UUID NOT NULL REFERENCES products(id), order_id UUID NOT NULL REFERENCES orders(id), rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5), comment VARCHAR(1000), created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, product_id, order_id));
+CREATE INDEX idx_reviews_product_created ON reviews(product_id, created_at DESC);
+CREATE TABLE loyalty_transactions (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id), order_id UUID NOT NULL REFERENCES orders(id), points INTEGER NOT NULL CHECK (points >= 0), reason VARCHAR(120) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(order_id));
+CREATE INDEX idx_loyalty_user_created ON loyalty_transactions(user_id, created_at DESC);

@@ -1,0 +1,70 @@
+﻿services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quedrink}
+      POSTGRES_USER: ${POSTGRES_USER:-quedrink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+
+  backend:
+    build: ./backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=${POSTGRES_DB:-quedrink};Username=${POSTGRES_USER:-quedrink};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET with at least 48 characters}
+      PAYMENT_CALLBACK_SECRET: ${PAYMENT_CALLBACK_SECRET:?Set PAYMENT_CALLBACK_SECRET with at least 48 characters}
+      AUTH_EXPOSE_RESET_TOKEN: ${AUTH_EXPOSE_RESET_TOKEN:-false}
+      GMAIL_ENABLED: ${GMAIL_ENABLED:-false}
+      GMAIL_ADDRESS: ${GMAIL_ADDRESS:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-DISABLED}
+      VNPAY_SANDBOX: ${VNPAY_SANDBOX:-true}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      STORE_NAME: ${STORE_NAME:-Quê Drinks}
+      STORE_ADDRESS: ${STORE_ADDRESS:-Nhận tại quầy Quê Drinks - liên hệ quán để biết địa chỉ}
+      STORE_PHONE: ${STORE_PHONE:-}
+      SHIPPING_FEE: ${SHIPPING_FEE:-10000}
+      SHIPPING_FREE_FROM: ${SHIPPING_FREE_FROM:-150000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+    volumes:
+      - backend_keys:/keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_STORE_NAME: ${STORE_NAME:-Quê Drinks}
+        API_INTERNAL_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+
+volumes:
+  postgres_data:
+  backend_keys:

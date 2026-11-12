@@ -1,0 +1,7 @@
+﻿**/bin
+**/obj
+**/.keys
+**/target
+.env*
+.local
+*.log
