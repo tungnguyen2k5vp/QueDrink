@@ -1,6 +1,6 @@
 ﻿# Quê Drinks — ASP.NET Core + Next.js
 
-Website đặt đồ uống, phục vụ demo và học full stack C#/.NET. Backend Java đã được chuyển sang **ASP.NET Core 10, Entity Framework Core và PostgreSQL 16**. Frontend dùng **Next.js, React, TypeScript và Tailwind CSS**.
+Website đặt đồ uống, phục vụ demo và học full stack C#/.NET. Backend sử dụng **ASP.NET Core 10, Entity Framework Core và PostgreSQL 16**. Frontend dùng **Next.js, React, TypeScript và Tailwind CSS**.
 
 ## Chạy nhanh trên Windows
 
